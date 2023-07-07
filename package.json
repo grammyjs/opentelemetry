@@ -1,8 +1,8 @@
 {
-    "name": "@grammyjs/plugin-template",
-    "version": "1.0.0",
-    "description": "A Simple Pluging Template For grammY",
-    "homepage": "https://grammy.dev/plugins/MYPLUGIN",
+    "name": "@grammyjs/prometheus",
+    "version": "0.0.0",
+    "description": "Integration with Prometheus for collecting metrics and monitoring bots.",
+    "homepage": "https://grammy.dev/plugins/prometheus",
     "main": "./out/mod.js",
     "type": "commonjs",
     "scripts": {
@@ -10,7 +10,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/Amir-Zouerami/plugin-template.git"
+        "url": "git+https://github.com/grammyjs/prometheus.git"
     },
     "exports": {
         ".": "./out/mod.js"
@@ -18,10 +18,10 @@
     "files": [
         "out/"
     ],
-    "author": "Amir Zouerami",
+    "author": "Nazar Antoniuk",
     "license": "MIT",
     "bugs": {
-        "url": "https://github.com/Amir-Zouerami/plugin-template/issues"
+        "url": "https://github.com/grammyjs/prometheus/issues"
     },
     "peerDependencies": {
         "grammy": "^1.5.1"
@@ -32,6 +32,9 @@
     "keywords": [
         "grammY",
         "Telegram bot framework",
-        "plugin"
+        "plugin",
+        "prometheus",
+        "metrics",
+        "telemetry"
     ]
 }
