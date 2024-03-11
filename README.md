@@ -17,7 +17,7 @@ However, there are some problems with it:
 3. They are very fond of autoinstrumentation, which intercepts `require/import` calls and patches the requested package,
    which we think is a very, very bad pattern that we don't want to impose on grammY users.
 
-This plugin allows you to use open telemetry without those caveats.
+This plugin allows you to use OpenTelemetry without those caveats.
 
 ## Usage
 
