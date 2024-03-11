@@ -17,5 +17,34 @@ However, there are some problems with it:
 3. They are very fond of autoinstrumentation, which intercepts `require/import` calls and patches the requested package,
    which we think is a very, very bad pattern that we don't want to impose on grammY users.
 
-So we decided to implement the OpenTelemetry specification in Deno in a way that would provide the best possible
-OpenTelemetry experience in grammY while avoiding the aforementioned issues.
+This plugin allows you to use open telemetry without those caveats.
+
+## Usage
+
+```ts
+import { Bot, Context } from "npm:grammy";
+import { getHttpTracer, openTelemetryTransformer } from "jsr:@roz/grammy-opentelemetry";
+
+const bot = new Bot<Context>("token");
+
+bot.api.config.use(openTelemetryTransformer(getHttpTracer("my-bot")));
+
+bot.command("start", (ctx) => {
+  // Creates a new span for the current command,
+  // tied to the span of the current update.
+  return ctx.openTelemetry.trace(
+    // span name
+    "command.start",
+    // span attributes
+    { ["user.id"]: ctx.from?.id },
+    // span actions
+    async (span) => {
+      span.addEvent("command.start.handle");
+      await ctx.reply("Hello! I'm a bot!");
+      await ctx.reply("I can help you with a lot of things!");
+    },
+  );
+});
+
+bot.start();
+```

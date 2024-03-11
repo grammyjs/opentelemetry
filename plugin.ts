@@ -1,18 +1,18 @@
 import {
-  Attributes,
-  BasicTracerProvider,
-  BatchSpanProcessor,
-  Context,
-  conventions,
-  MiddlewareFn,
-  otel,
-  OTLPExporterNodeConfigBase,
-  OTLPTraceExporter,
-  RawApi,
-  Resource,
-  TracerConfig,
-  Transformer,
-  Update,
+    Attributes,
+    BasicTracerProvider,
+    BatchSpanProcessor,
+    Context,
+    conventions,
+    MiddlewareFn,
+    otel,
+    OTLPExporterNodeConfigBase,
+    OTLPTraceExporter,
+    RawApi,
+    Resource,
+    TracerConfig,
+    Transformer,
+    Update,
 } from "./deps.ts";
 
 /**
@@ -30,9 +30,41 @@ import {
  */
 export type OpenTelemetryContext = {
   openTelemetry: {
+    /**
+     * An instance of OpenTelemetry Tracer
+     */
     tracer: otel.Tracer;
+    /**
+     * The current active OpenTelemetry context
+     */
     context: otel.Context;
+    /**
+     * The current active OpenTelemetry span context
+     */
     spanContext: otel.SpanContext;
+    /**
+     * Create a new span and execute a function within it
+     * @param name Name of the span
+     * @param attributes Attributes to add to the span
+     * @param fn Function to execute within the span
+     *
+     * @returns A promise that resolves when the function has finished executing
+     *
+     * @example
+     * ```ts
+     * bot.command("start", (ctx) => {
+     *   return ctx.openTelemetry.trace(
+     *     "command.start",
+     *     { ["user.id"]: ctx.from?.id },
+     *     async (span) => {
+     *       span.addEvent("command.start.handle");
+     *       await ctx.reply("Hello! I'm a bot!");
+     *       await ctx.reply("I can help you with a lot of things!");
+     *     },
+     *   );
+     * });
+     * ```
+     */
     trace: (
       name: string,
       attributes: Attributes,
