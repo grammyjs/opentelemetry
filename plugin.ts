@@ -5,6 +5,7 @@ import {
   Context,
   conventions,
   MiddlewareFn,
+  NextFunction,
   otel,
   OTLPExporterNodeConfigBase,
   OTLPTraceExporter,
@@ -121,13 +122,7 @@ export type TransformerOptions = {
  * @param options Optional config object
  *
  * @example ```ts
- * import { Bot, Context } from "grammy";
- * import { openTelemetryTransformer } from "grammy-opentelemetry";
- * import { getHttpTracer } from "grammy-opentelemetry";
- *
- * const bot = new Bot<Context>("token");
  * bot.api.config.use(openTelemetryTransformer(getHttpTracer("my-bot")));
- * bot.start();
  * ```
  */
 export const openTelemetryTransformer = (
@@ -149,6 +144,34 @@ export const openTelemetryTransformer = (
           });
       });
     });
+  };
+};
+
+/**
+ * Wraps a middleware function in a new span
+ * @param name Span name to display in the trace
+ * @param fn Function to execute within the span
+ * @param attributes Span attributes
+ * @returns A middleware that executes your function within a new span
+ *
+ * @example
+ * ```ts
+ * bot.command(
+ *   "ping",
+ *   traced("command.ping", async (ctx) => {
+ *     await new Promise((resolve) => setTimeout(resolve, 1000));
+ *     await ctx.reply("Pong!");
+ *   }),
+ * );
+ * ```
+ */
+export const traced = (
+  name: string,
+  fn: (ctx: Context & OpenTelemetryContext, span: otel.Span, next: NextFunction) => Promise<void>,
+  attributes: Attributes = {},
+): MiddlewareFn<Context & OpenTelemetryContext> => {
+  return (ctx: Context & OpenTelemetryContext, next: NextFunction) => {
+    ctx.openTelemetry.trace(name, attributes, (span) => fn(ctx, span, next));
   };
 };
 

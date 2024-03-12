@@ -30,8 +30,7 @@ const bot = new Bot<Context>("token");
 bot.api.config.use(openTelemetryTransformer(getHttpTracer("my-bot")));
 
 bot.command("start", (ctx) => {
-  // Creates a new span for the current command,
-  // tied to the span of the current update.
+  // Creates a new span tied to the span of the current update.
   return ctx.openTelemetry.trace(
     // span name
     "command.start",
@@ -45,6 +44,16 @@ bot.command("start", (ctx) => {
     },
   );
 });
+
+bot.command(
+  "ping",
+  // Wraps the handler in a span with the given name, tied to the span of the current update.
+  // Shortcut for `ctx.openTelemetry.trace("command.ping", ...)`.
+  traced("command.ping", async (ctx) => {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await ctx.reply("Pong!");
+  }),
+);
 
 bot.start();
 ```
