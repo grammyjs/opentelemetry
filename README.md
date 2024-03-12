@@ -23,7 +23,7 @@ This plugin allows you to use OpenTelemetry without those caveats.
 
 ```ts
 import { Bot, Context } from "npm:grammy";
-import { getHttpTracer, openTelemetryTransformer } from "jsr:@roz/grammy-opentelemetry";
+import { getHttpTracer, openTelemetryTransformer } from "jsr:@grammyjs/opentelemetry";
 
 const bot = new Bot<Context>("token");
 
