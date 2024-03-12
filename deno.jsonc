@@ -1,19 +1,35 @@
 {
-    "lock": false,
-    "fmt": {
-        "indentWidth": 4,
-        "proseWrap": "preserve",
-        "exclude": [
-            "./node_modules/",
-            "./out/",
-            "./package-lock.json"
-        ]
-    },
-    "lint": {
-        "exclude": [
-            "./node_modules/",
-            "./out/",
-            "./package-lock.json"
-        ]
+  "name": "@grammyjs/opentelemetry",
+  "version": "0.0.1",
+  "exports": "./mod.ts",
+  "lock": false,
+  "exclude": ["dist", ".vscode", ".github"],
+  "lint": {
+    "rules": {
+      "tags": ["recommended"],
+      "exclude": ["no-explicit-any"],
+      "include": [
+        "explicit-function-return-type",
+        "camelcase",
+        "default-param-last",
+        "eqeqeq",
+        "no-console",
+        "no-throw-literal",
+        "single-var-declarator",
+        "verbatim-module-syntax"
+      ]
     }
+  },
+  "fmt": {
+    "indentWidth": 2,
+    "lineWidth": 120
+  },
+  "publish": {
+    "exclude": ["usage.ts", "scripts"]
+  },
+  "tasks": {
+    "check": "deno lint && deno fmt --check && deno check mod.ts && deno doc --lint mod.ts",
+    "dnt": "deno run -A scripts/transform-node.ts",
+    "tidy": "deno fmt && deno task check"
+  }
 }

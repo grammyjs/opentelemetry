@@ -1,3 +1,0 @@
-/**
- * MAIN PLUGIN CODE HERE
- */
