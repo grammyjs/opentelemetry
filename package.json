@@ -49,5 +49,8 @@
         "out/types"
       ]
     }
-  }
+  },
+  "files": [
+    "out"
+  ]
 }
