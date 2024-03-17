@@ -1,13 +1,17 @@
 {
-  "name": "@grammyjs/opentelemetry",
-  "version": "0.0.4",
-  "exports": "./mod.ts",
   "lock": false,
   "exclude": ["dist", ".vscode", ".github"],
   "lint": {
     "rules": {
       "tags": ["recommended"],
-      "exclude": ["no-explicit-any"],
+      "exclude": [
+        "no-explicit-any",
+        "./deno_cache/",
+        "./node_modules/",
+        "./out/",
+        "./package-lock.json",
+        "./bundling/bundles"
+      ],
       "include": [
         "explicit-function-return-type",
         "camelcase",
@@ -22,14 +26,19 @@
   },
   "fmt": {
     "indentWidth": 2,
-    "lineWidth": 120
-  },
-  "publish": {
-    "exclude": ["usage.ts", "scripts"]
+    "lineWidth": 120,
+    "exclude": [
+      "./deno_cache/",
+      "./node_modules/",
+      "./out/",
+      "./package-lock.json",
+      "./bundling/bundles",
+      "./test/cov_profile"
+    ]
   },
   "tasks": {
-    "check": "deno lint && deno fmt --check && deno check mod.ts && deno doc --lint mod.ts",
-    "dnt": "deno run -A scripts/transform-node.ts",
-    "tidy": "deno fmt && deno task check"
+    "check": "deno lint && deno fmt --check && deno check src/mod.ts",
+    "tidy": "deno fmt && deno task check",
+    "backport": "deno run --no-prompt --allow-read=. --allow-write=. https://deno.land/x/deno2node@v1.11.0/src/cli.ts tsconfig.json"
   }
 }

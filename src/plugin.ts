@@ -3,10 +3,8 @@ import {
   BasicTracerProvider,
   BatchSpanProcessor,
   Context,
-  conventions,
   MiddlewareFn,
   NextFunction,
-  otel,
   OTLPExporterNodeConfigBase,
   OTLPTraceExporter,
   RawApi,
@@ -14,7 +12,9 @@ import {
   TracerConfig,
   Transformer,
   Update,
-} from "./deps.ts";
+  conventions,
+  otel
+} from "./deps.deno.ts";
 
 /**
  * Context property added by the plugin.
