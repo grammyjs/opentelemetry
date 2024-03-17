@@ -14,7 +14,7 @@ import {
   TracerConfig,
   Transformer,
   Update,
-} from "./deps.ts";
+} from "./deps.deno.ts";
 
 /**
  * Context property added by the plugin.
