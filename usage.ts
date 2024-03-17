@@ -1,7 +1,7 @@
 // deno-lint-ignore-file no-console
 import { Bot, Context } from "https://deno.land/x/grammy@v1.21.1/mod.ts";
 import { DiagLogLevel } from "npm:@opentelemetry/api";
-import { OpenTelemetryContext, getHttpTracer, openTelemetry, traced } from "./src/mod.ts";
+import { getHttpTracer, openTelemetry, OpenTelemetryContext, traced } from "./src/mod.ts";
 
 type AppContext = Context & OpenTelemetryContext;
 

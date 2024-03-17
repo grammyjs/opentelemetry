@@ -1,53 +1,53 @@
 {
-    "name": "@grammyjs/open-telemetry",
-    "version": "0.0.2",
-    "description": "grammY plugin that adds OpenTelemetry tracing to your bot",
-    "author": "Roz <roz@rjmunhoz.me>",
-    "license": "MIT",
-    "scripts": {
-        "prepare": "npm run backport",
-        "backport": "deno2node tsconfig.json"
+  "name": "@grammyjs/open-telemetry",
+  "version": "0.0.2",
+  "description": "grammY plugin that adds OpenTelemetry tracing to your bot",
+  "author": "Roz <roz@rjmunhoz.me>",
+  "license": "MIT",
+  "scripts": {
+    "prepare": "npm run backport",
+    "backport": "deno2node tsconfig.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/grammyjs/open-telemetry.git"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "1.8.0",
+    "@opentelemetry/exporter-trace-otlp-http": "0.49.1",
+    "@opentelemetry/resources": "1.22.0",
+    "@opentelemetry/sdk-trace-base": "1.22.0",
+    "@opentelemetry/semantic-conventions": "1.22.0"
+  },
+  "devDependencies": {
+    "@opentelemetry/otlp-exporter-base": "0.49.1",
+    "deno2node": "^1.11.0",
+    "grammy": "1"
+  },
+  "exports": {
+    ".": {
+      "types": "./out/mod.d.ts",
+      "node": "./out/mod.js",
+      "browser": "./out/web.mjs",
+      "default": "./out/web.mjs"
     },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/grammyjs/open-telemetry.git"
+    "./types": {
+      "types": "./out/types.d.ts",
+      "default": "./out/types.js"
     },
-    "dependencies": {
-        "@opentelemetry/api": "1.8.0",
-        "@opentelemetry/exporter-trace-otlp-http": "0.49.1",
-        "@opentelemetry/resources": "1.22.0",
-        "@opentelemetry/sdk-trace-base": "1.22.0",
-        "@opentelemetry/semantic-conventions": "1.22.0"
-    },
-    "devDependencies": {
-        "@opentelemetry/otlp-exporter-base": "0.49.1",
-        "deno2node": "^1.11.0",
-        "grammy": "1"
-    },
-    "exports": {
-        ".": {
-            "types": "./out/mod.d.ts",
-            "node": "./out/mod.js",
-            "browser": "./out/web.mjs",
-            "default": "./out/web.mjs"
-        },
-        "./types": {
-            "types": "./out/types.d.ts",
-            "default": "./out/types.js"
-        },
-        "./web": {
-            "types": "./out/web.d.ts",
-            "default": "./out/web.mjs"
-        }
-    },
-    "typesVersions": {
-        "*": {
-            "web": [
-                "out/web"
-            ],
-            "types": [
-                "out/types"
-            ]
-        }
+    "./web": {
+      "types": "./out/web.d.ts",
+      "default": "./out/web.mjs"
     }
+  },
+  "typesVersions": {
+    "*": {
+      "web": [
+        "out/web"
+      ],
+      "types": [
+        "out/types"
+      ]
+    }
+  }
 }

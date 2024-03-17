@@ -8,4 +8,3 @@ export type { TracerConfig } from "@opentelemetry/sdk-trace-base";
 export * as conventions from "@opentelemetry/semantic-conventions";
 export type { Context, MiddlewareFn, NextFunction, RawApi, Transformer } from "grammy";
 export type { ApiMethods, Update } from "grammy/types";
-

@@ -8,4 +8,3 @@ export { Resource } from "npm:@opentelemetry/resources@1.22.0";
 export { BasicTracerProvider, BatchSpanProcessor } from "npm:@opentelemetry/sdk-trace-base@1.22.0";
 export type { TracerConfig } from "npm:@opentelemetry/sdk-trace-base@1.22.0";
 export * as conventions from "npm:@opentelemetry/semantic-conventions@1.22.0";
-
