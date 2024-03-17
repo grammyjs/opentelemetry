@@ -22,8 +22,8 @@ This plugin allows you to use OpenTelemetry without those caveats.
 ## Usage
 
 ```ts
-import { Bot, Context } from "grammy";
-import { getHttpTracer, openTelemetryTransformer } from "@grammyjs/opentelemetry";
+import { Bot, Context } from "https://deno.land/x/grammy/mod.ts";
+import { getHttpTracer, openTelemetryTransformer } from "https://deno.land/x/grammyjs_opentelemetry/mod.ts";
 
 const bot = new Bot<Context>("token");
 
