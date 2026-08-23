@@ -16,6 +16,8 @@ import {
   Update,
 } from "./deps.deno.ts";
 
+export { AlwaysOffSampler, AlwaysOnSampler, ParentBasedSampler, TraceIdRatioBasedSampler } from "./deps.deno.ts";
+
 /**
  * Context property added by the plugin.
  *
@@ -134,11 +136,15 @@ export const openTelemetryTransformer = (
 
     return new Promise((resolve) => {
       tracer.startActiveSpan(`api.${method}`, (span) => {
-        span.addEvent("api.request", { body: JSON.stringify(payload) });
-        span.setAttribute("api.method", method);
+        if (span.isRecording()) {
+          span.addEvent("api.request", { body: JSON.stringify(payload) });
+          span.setAttribute("api.method", method);
+        }
         prev(method, payload, signal)
           .then((response) => {
-            span.addEvent("api.response", { body: JSON.stringify(response) });
+            if (span.isRecording()) {
+              span.addEvent("api.response", { body: JSON.stringify(response) });
+            }
             span.end();
             resolve(response);
           });
@@ -212,23 +218,30 @@ export const openTelemetry = (
   }
 
   return async (ctx, next) => {
-    const rootSpan = tracer.startSpan(`update.${updateType(ctx.update)}`, {
+    const typeKey = updateType(ctx.update);
+    const rootSpan = tracer.startSpan(`update.${typeKey}`, {
       root: true,
     });
     let otContext = otel.trace.setSpan(otel.context.active(), rootSpan);
 
     ctx.api.config.use(async (prev, method, payload, signal) => {
       const apiSpan = tracer.startSpan(`api.${method}`, {}, otContext);
-      apiSpan.addEvent("api.request", { body: JSON.stringify(payload) });
-      apiSpan.setAttribute("api.method", method);
+      if (apiSpan.isRecording()) {
+        apiSpan.addEvent("api.request", { body: JSON.stringify(payload) });
+        apiSpan.setAttribute("api.method", method);
+      }
       const response = await prev(method, payload, signal);
-      apiSpan.addEvent("api.response", { body: JSON.stringify(response) });
+      if (apiSpan.isRecording()) {
+        apiSpan.addEvent("api.response", { body: JSON.stringify(response) });
+      }
       apiSpan.end();
       return response;
     });
 
-    rootSpan.setAttribute("update.type", updateType(ctx.update));
-    rootSpan.setAttribute("update.body", JSON.stringify(ctx.update));
+    if (rootSpan.isRecording()) {
+      rootSpan.setAttribute("update.type", typeKey);
+      rootSpan.setAttribute("update.body", JSON.stringify(ctx.update));
+    }
 
     ctx.openTelemetry = {
       spanContext: rootSpan.spanContext(),
