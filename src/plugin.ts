@@ -30,7 +30,7 @@ import {
  * ```
  */
 export type OpenTelemetryContext = {
-  openTelemetry: {
+  telemetry: {
     /**
      * An instance of OpenTelemetry Tracer
      */
@@ -54,7 +54,7 @@ export type OpenTelemetryContext = {
      * @example
      * ```ts
      * bot.command("start", (ctx) => {
-     *   return ctx.openTelemetry.trace(
+     *   return ctx.telemetry.trace(
      *     "command.start",
      *     { ["user.id"]: ctx.from?.id },
      *     async (span) => {
@@ -171,7 +171,7 @@ export const traced = (
   attributes: Attributes = {},
 ): MiddlewareFn<Context & OpenTelemetryContext> => {
   return (ctx: Context & OpenTelemetryContext, next: NextFunction) => {
-    ctx.openTelemetry.trace(name, attributes, (span) => fn(ctx, span, next));
+    ctx.telemetry.trace(name, attributes, (span) => fn(ctx, span, next));
   };
 };
 
@@ -230,7 +230,7 @@ export const openTelemetry = (
     rootSpan.setAttribute("update.type", updateType(ctx.update));
     rootSpan.setAttribute("update.body", JSON.stringify(ctx.update));
 
-    ctx.openTelemetry = {
+    ctx.telemetry = {
       spanContext: rootSpan.spanContext(),
       context: otel.trace.setSpan(otel.context.active(), rootSpan),
       tracer,
@@ -238,7 +238,7 @@ export const openTelemetry = (
         const customSpan = tracer.startSpan(
           name,
           attributes,
-          ctx.openTelemetry.context,
+          ctx.telemetry.context,
         );
         otContext = otel.trace.setSpan(otContext, customSpan);
         await fn(customSpan);
