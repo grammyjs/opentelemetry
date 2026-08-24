@@ -34,3 +34,13 @@ To use a custom tracer:
 ```ts
 bot.use(openTelemetry("my-bot", { tracer: customTracer }));
 ```
+
+## Events
+
+`event()` emits an OpenTelemetry Log Event with the given name and attributes through the OTel Logs signal:
+
+```ts
+bot.command("start", (ctx) => {
+  ctx.telemetry.event("command.start", { "user.id": ctx.from?.id });
+});
+```
