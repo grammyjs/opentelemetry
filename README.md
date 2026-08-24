@@ -23,7 +23,7 @@ This plugin allows you to use OpenTelemetry without those caveats.
 
 ```ts
 import { Bot, type Context } from "grammy";
-import { openTelemetry, type OpenTelemetryContext } from "@grammyjs/opentelemetry";
+import { openTelemetry, type OpenTelemetryContext, traced } from "@grammyjs/opentelemetry";
 
 const bot = new Bot<Context & OpenTelemetryContext>("token");
 bot.use(openTelemetry("my-bot"));
@@ -43,4 +43,37 @@ bot.use(openTelemetry("my-bot", { tracer: customTracer }));
 bot.command("start", (ctx) => {
   ctx.telemetry.event("command.start", { "user.id": ctx.from?.id });
 });
+```
+
+## Traces
+
+Run work inside a child span of the current update:
+
+```ts
+bot.command("start", async (ctx) => {
+  await ctx.telemetry.trace(
+    "command.start",
+    { command: "start" },
+    async (span) => {
+      span.addEvent("command.start.handle");
+      await ctx.reply("Hello! I'm a bot!");
+    },
+  );
+});
+```
+
+`traced()` provides the same lifecycle as grammY middleware:
+
+```ts
+bot.command(
+  "start",
+  traced(
+    "command.start",
+    { command: "start" },
+    async (ctx, span) => {
+      span.addEvent("command.start.handle");
+      await ctx.reply("Hello! I'm a bot!");
+    },
+  ),
+);
 ```
