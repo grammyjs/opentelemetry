@@ -77,3 +77,27 @@ bot.command(
   ),
 );
 ```
+
+## Manual spans
+
+Custom spans can be added manually:
+
+```ts
+bot.command("finish", async (ctx) => {
+  const span = ctx.telemetry.start("command.finish", { success: true });
+  try {
+    span.setAttribute("telegram.chat.id", ctx.chat.id);
+    await ctx.reply("Finished!");
+  } finally {
+    span.end();
+  }
+});
+```
+
+> [!NOTE]
+> `start()` returns a `DisposableSpan`. It supports `using`, which ends the span automatically when execution leaves its
+> scope:
+>
+> ```ts
+> using span = ctx.telemetry.start("command.finish", { success: true });
+> ```
