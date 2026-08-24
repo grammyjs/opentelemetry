@@ -127,22 +127,20 @@ export type OpenTelemetryContext<
      */
     tracer: otel.Tracer;
     /**
-     * The current active OpenTelemetry context
+     * The OpenTelemetry context of the current update span
      */
     context: otel.Context;
-    /**
-     * The current active OpenTelemetry span context
-     */
+    /** The span context of the current update span. */
     spanContext: otel.SpanContext;
     /** Emit a named OpenTelemetry Log Event. */
     event: (...args: EventArguments<Events>) => void;
     /** Start a child span with a manually controlled lifetime. */
     start: (...args: SpanArguments<Spans>) => DisposableSpan;
     /**
-     * Create a new span and execute a function within it
-     * @param name Name of the span
-     * @param attributes Attributes to add to the span
-     * @param fn Function to execute within the span
+     * Create a child span and execute a function within it
+     * @param name Child span name
+     * @param attributes Attributes to add to the child span
+     * @param fn Function to execute within the child span
      *
      * @returns A promise that resolves when the function has finished executing
      *
@@ -288,9 +286,7 @@ export function traced(
   };
 }
 
-/**
- * Options for the main middleware
- */
+/** Configuration for `openTelemetry`. */
 export type PluginOptions = {
   /** Use an existing tracer instead of creating one for the service. */
   tracer?: otel.Tracer;
