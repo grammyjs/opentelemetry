@@ -1,13 +1,19 @@
 import {
   Attributes,
   BasicTracerProvider,
+  BatchLogRecordProcessor,
   BatchSpanProcessor,
   Context,
   conventions,
+  type LogAttributes,
+  LoggerProvider,
+  logResourceFromAttributes,
+  logs,
   MiddlewareFn,
   NextFunction,
   otel,
   OTLPExporterNodeConfigBase,
+  OTLPLogExporter,
   OTLPTraceExporter,
   RawApi,
   Resource,
@@ -107,6 +113,8 @@ export type OpenTelemetryContext<
      * The current active OpenTelemetry span context
      */
     spanContext: otel.SpanContext;
+    /** Emit a named OpenTelemetry Log Event. */
+    event: (name: string, attributes: LogAttributes) => void;
     /** Start a child span with a manually controlled lifetime. */
     start: (...args: SpanArguments<Spans>) => DisposableSpan;
     /**
@@ -297,6 +305,15 @@ export const openTelemetry = <
     otel.diag.setLogger(new otel.DiagConsoleLogger(), options.logLevel);
   }
   const tracer = options.tracer ?? getHttpTracer(serviceName);
+  const loggerProvider = logs.setGlobalLoggerProvider(
+    new LoggerProvider({
+      resource: logResourceFromAttributes({
+        [conventions.ATTR_SERVICE_NAME]: serviceName,
+      }),
+      processors: [new BatchLogRecordProcessor({ exporter: new OTLPLogExporter() })],
+    }),
+  );
+  const logger = loggerProvider.getLogger(INSTRUMENTATION_SCOPE_NAME);
 
   return async (ctx, next) => {
     const rootSpan = tracer.startSpan(`update.${updateType(ctx.update)}`, {
@@ -325,6 +342,9 @@ export const openTelemetry = <
       spanContext: rootSpan.spanContext(),
       context: rootContext,
       tracer,
+      event: (eventName, attributes) => {
+        logger.emit({ eventName, attributes, context: otContext });
+      },
       start: (...args) => {
         const [name, attributes] = args;
         return disposableSpan(tracer.startSpan(name, { attributes }, otContext));
