@@ -75,6 +75,7 @@ export type OpenTelemetryContext = {
 };
 
 const updateType = (update: Update): string => Object.keys(update).filter((k) => k !== "update_id")[0];
+const INSTRUMENTATION_SCOPE_NAME = "grammyjs-opentelemetry";
 
 /**
  * Create a new instance of the HTTP OpenTelemetry Tracer with recommended defaults.
@@ -92,13 +93,13 @@ export const getHttpTracer = (
   const exporter = new OTLPTraceExporter(options.exporterConfig);
   const provider = new BasicTracerProvider({
     resource: new Resource({
-      [conventions.SEMRESATTRS_SERVICE_NAME]: serviceName,
+      [conventions.ATTR_SERVICE_NAME]: serviceName,
     }),
     ...options.providerConfig,
   });
   provider.addSpanProcessor(new BatchSpanProcessor(exporter));
   provider.register();
-  return provider.getTracer("grammy-otel");
+  return provider.getTracer(INSTRUMENTATION_SCOPE_NAME);
 };
 
 /**
@@ -179,6 +180,8 @@ export const traced = (
  * Options for the main middleware
  */
 export type PluginOptions = {
+  /** Use an existing tracer instead of creating one for the service. */
+  tracer?: otel.Tracer;
   /**
    * Log level for OpenTelemetry diagnostics
    */
@@ -189,27 +192,27 @@ export type PluginOptions = {
  * Main plugin function. Enables OpenTelemetry for every update and every
  * API call performed via Context helpers (eg: ctx.reply).
  *
- * @param tracer An instance of OpenTelemetry Tracer
- * @param options Optional config object
+ * @param serviceName Value of `service.name` on telemetry resources created by the plugin
+ * @param options Tracer and diagnostic configuration
  * @returns A middleware that enables OpenTelemetry for every update
  *
  * @example ```ts
  * import { Bot, Context } from "grammy";
  * import { openTelemetry } from "grammy-opentelemetry";
- * import { getHttpTracer } from "grammy-opentelemetry";
  *
  * const bot = new Bot<Context>("token");
- * bot.use(openTelemetry(getHttpTracer("my-bot")));
+ * bot.use(openTelemetry("my-bot"));
  * bot.start();
  * ```
  */
 export const openTelemetry = (
-  tracer: otel.Tracer,
+  serviceName: string,
   options: PluginOptions = {},
 ): MiddlewareFn<Context & OpenTelemetryContext> => {
   if (options.logLevel) {
     otel.diag.setLogger(new otel.DiagConsoleLogger(), options.logLevel);
   }
+  const tracer = options.tracer ?? getHttpTracer(serviceName);
 
   return async (ctx, next) => {
     const rootSpan = tracer.startSpan(`update.${updateType(ctx.update)}`, {
