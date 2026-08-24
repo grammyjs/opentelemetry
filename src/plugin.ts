@@ -16,6 +16,41 @@ import {
   Update,
 } from "./deps.deno.ts";
 
+export type SpanDefinitions = Record<string, Attributes>;
+type ValidSpanDefinitions<Spans> = { [Name in keyof Spans]: Attributes };
+type SpanName<Spans> = Extract<keyof Spans, string>;
+type TraceCallback = (span: otel.Span) => Promise<void>;
+type TraceArguments<Spans> = {
+  [Name in SpanName<Spans>]: [
+    name: Name,
+    attributes: Spans[Name],
+    fn: TraceCallback,
+  ];
+}[SpanName<Spans>];
+
+type TracedCallback<Spans extends ValidSpanDefinitions<Spans>> = (
+  ctx: Context & OpenTelemetryContext<Spans>,
+  span: otel.Span,
+  next: NextFunction,
+) => Promise<void>;
+type AttributeFreeTracedArguments<Spans extends ValidSpanDefinitions<Spans>> = {
+  [Name in SpanName<Spans>]: Record<never, never> extends Spans[Name] ? [name: Name, fn: TracedCallback<Spans>]
+    : never;
+}[SpanName<Spans>];
+type AttributedTracedArguments<Spans extends ValidSpanDefinitions<Spans>> = {
+  [Name in SpanName<Spans>]: [
+    name: Name,
+    attributes: Spans[Name],
+    fn: TracedCallback<Spans>,
+  ];
+}[SpanName<Spans>];
+
+type UntypedTracedCallback = (
+  ctx: Context & OpenTelemetryContext,
+  span: otel.Span,
+  next: NextFunction,
+) => Promise<void>;
+
 /**
  * Context property added by the plugin.
  *
@@ -28,8 +63,12 @@ import {
  *
  * const bot = new Bot<MyContext>("token");
  * ```
+ *
+ * @typeParam Spans Supported custom spans and their attribute payloads
  */
-export type OpenTelemetryContext = {
+export type OpenTelemetryContext<
+  Spans extends ValidSpanDefinitions<Spans> = SpanDefinitions,
+> = {
   telemetry: {
     /**
      * An instance of OpenTelemetry Tracer
@@ -66,11 +105,7 @@ export type OpenTelemetryContext = {
      * });
      * ```
      */
-    trace: (
-      name: string,
-      attributes: Attributes,
-      fn: (span: otel.Span) => Promise<unknown>,
-    ) => void;
+    trace: (...args: TraceArguments<Spans>) => Promise<void>;
   };
 };
 
@@ -148,32 +183,52 @@ export const openTelemetryTransformer = (
 };
 
 /**
- * Wraps a middleware function in a new span
- * @param name Span name to display in the trace
- * @param fn Function to execute within the span
- * @param attributes Span attributes
- * @returns A middleware that executes your function within a new span
+ * Wraps middleware in a span without initial attributes.
+ * @param args Span name and middleware callback
+ * @returns Middleware that runs the callback within the span
  *
- * @example
  * ```ts
  * bot.command(
  *   "ping",
  *   traced("command.ping", async (ctx) => {
- *     await new Promise((resolve) => setTimeout(resolve, 1000));
  *     await ctx.reply("Pong!");
  *   }),
  * );
  * ```
  */
-export const traced = (
+export function traced<Spans extends ValidSpanDefinitions<Spans> = SpanDefinitions>(
+  ...args: AttributeFreeTracedArguments<Spans>
+): MiddlewareFn<Context & OpenTelemetryContext<Spans>>;
+/**
+ * Wraps middleware in a span with initial attributes.
+ * @param args Span name, initial attributes, and middleware callback
+ * @returns Middleware that runs the callback within the span
+ *
+ * ```ts
+ * bot.command(
+ *   "finish",
+ *   traced("command.finish", { success: true }, async (ctx) => {
+ *     await ctx.reply("Finished!");
+ *   }),
+ * );
+ * ```
+ */
+export function traced<Spans extends ValidSpanDefinitions<Spans> = SpanDefinitions>(
+  ...args: AttributedTracedArguments<Spans>
+): MiddlewareFn<Context & OpenTelemetryContext<Spans>>;
+export function traced(
   name: string,
-  fn: (ctx: Context & OpenTelemetryContext, span: otel.Span, next: NextFunction) => Promise<void>,
-  attributes: Attributes = {},
-): MiddlewareFn<Context & OpenTelemetryContext> => {
+  attributesOrFn: Attributes | UntypedTracedCallback,
+  fn?: UntypedTracedCallback,
+): MiddlewareFn<Context & OpenTelemetryContext> {
   return (ctx: Context & OpenTelemetryContext, next: NextFunction) => {
-    ctx.telemetry.trace(name, attributes, (span) => fn(ctx, span, next));
+    if (typeof attributesOrFn === "function") {
+      return ctx.telemetry.trace(name, {}, (span) => attributesOrFn(ctx, span, next));
+    }
+    if (fn === undefined) throw new TypeError("traced requires a callback");
+    return ctx.telemetry.trace(name, attributesOrFn, (span) => fn(ctx, span, next));
   };
-};
+}
 
 /**
  * Options for the main middleware
@@ -194,6 +249,7 @@ export type PluginOptions = {
  * @param serviceName Value of `service.name` on telemetry resources created by the plugin
  * @param options Tracer and diagnostic configuration
  * @returns A middleware that enables OpenTelemetry for every update
+ * @typeParam Spans Supported custom spans and their attribute payloads
  *
  * @example ```ts
  * import { Bot, Context } from "grammy";
@@ -204,10 +260,12 @@ export type PluginOptions = {
  * bot.start();
  * ```
  */
-export const openTelemetry = (
+export const openTelemetry = <
+  Spans extends ValidSpanDefinitions<Spans> = SpanDefinitions,
+>(
   serviceName: string,
   options: PluginOptions = {},
-): MiddlewareFn<Context & OpenTelemetryContext> => {
+): MiddlewareFn<Context & OpenTelemetryContext<Spans>> => {
   if (options.logLevel) {
     otel.diag.setLogger(new otel.DiagConsoleLogger(), options.logLevel);
   }
