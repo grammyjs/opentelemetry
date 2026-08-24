@@ -133,17 +133,16 @@ export const openTelemetryTransformer = (
   return (prev, method, payload, signal) => {
     if (options.skip(method, payload)) return prev(method, payload, signal);
 
-    return new Promise((resolve) => {
-      tracer.startActiveSpan(`api.${method}`, (span) => {
+    return tracer.startActiveSpan(`api.${method}`, async (span) => {
+      try {
         span.addEvent("api.request", { body: JSON.stringify(payload) });
         span.setAttribute("api.method", method);
-        prev(method, payload, signal)
-          .then((response) => {
-            span.addEvent("api.response", { body: JSON.stringify(response) });
-            span.end();
-            resolve(response);
-          });
-      });
+        const response = await prev(method, payload, signal);
+        span.addEvent("api.response", { body: JSON.stringify(response) });
+        return response;
+      } finally {
+        span.end();
+      }
     });
   };
 };
@@ -218,16 +217,20 @@ export const openTelemetry = (
     const rootSpan = tracer.startSpan(`update.${updateType(ctx.update)}`, {
       root: true,
     });
-    let otContext = otel.trace.setSpan(otel.context.active(), rootSpan);
+    const rootContext = otel.trace.setSpan(otel.context.active(), rootSpan);
+    let otContext = rootContext;
 
     ctx.api.config.use(async (prev, method, payload, signal) => {
       const apiSpan = tracer.startSpan(`api.${method}`, {}, otContext);
-      apiSpan.addEvent("api.request", { body: JSON.stringify(payload) });
-      apiSpan.setAttribute("api.method", method);
-      const response = await prev(method, payload, signal);
-      apiSpan.addEvent("api.response", { body: JSON.stringify(response) });
-      apiSpan.end();
-      return response;
+      try {
+        apiSpan.addEvent("api.request", { body: JSON.stringify(payload) });
+        apiSpan.setAttribute("api.method", method);
+        const response = await prev(method, payload, signal);
+        apiSpan.addEvent("api.response", { body: JSON.stringify(response) });
+        return response;
+      } finally {
+        apiSpan.end();
+      }
     });
 
     rootSpan.setAttribute("update.type", updateType(ctx.update));
@@ -235,21 +238,25 @@ export const openTelemetry = (
 
     ctx.telemetry = {
       spanContext: rootSpan.spanContext(),
-      context: otel.trace.setSpan(otel.context.active(), rootSpan),
+      context: rootContext,
       tracer,
       trace: async (name, attributes, fn) => {
-        const customSpan = tracer.startSpan(
-          name,
-          attributes,
-          ctx.telemetry.context,
-        );
-        otContext = otel.trace.setSpan(otContext, customSpan);
-        await fn(customSpan);
-        customSpan.end();
+        const customSpan = tracer.startSpan(name, { attributes }, otContext);
+        const parentContext = otContext;
+        otContext = otel.trace.setSpan(parentContext, customSpan);
+        try {
+          await otel.context.with(otContext, () => fn(customSpan));
+        } finally {
+          otContext = parentContext;
+          customSpan.end();
+        }
       },
     };
 
-    await next();
-    rootSpan.end();
+    try {
+      await otel.context.with(rootContext, next);
+    } finally {
+      rootSpan.end();
+    }
   };
 };
