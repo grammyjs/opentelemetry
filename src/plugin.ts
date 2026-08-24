@@ -1,19 +1,19 @@
 import {
-  Attributes,
+  type Attributes,
   BasicTracerProvider,
   BatchSpanProcessor,
-  Context,
+  type Context,
   conventions,
-  MiddlewareFn,
-  NextFunction,
+  type MiddlewareFn,
+  type NextFunction,
   otel,
-  OTLPExporterNodeConfigBase,
+  type OTLPExporterNodeConfigBase,
   OTLPTraceExporter,
-  RawApi,
+  type RawApi,
   Resource,
-  TracerConfig,
-  Transformer,
-  Update,
+  type TracerConfig,
+  type Transformer,
+  type Update,
 } from "./deps.deno.ts";
 
 export { AlwaysOffSampler, AlwaysOnSampler, ParentBasedSampler, TraceIdRatioBasedSampler } from "./deps.deno.ts";
