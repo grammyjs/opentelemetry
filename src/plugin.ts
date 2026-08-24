@@ -19,6 +19,13 @@ import {
 export type SpanDefinitions = Record<string, Attributes>;
 type ValidSpanDefinitions<Spans> = { [Name in keyof Spans]: Attributes };
 type SpanName<Spans> = Extract<keyof Spans, string>;
+type SpanArguments<Spans> = {
+  [Name in SpanName<Spans>]: [
+    name: Name,
+    attributes: Spans[Name],
+  ];
+}[SpanName<Spans>];
+
 type TraceCallback = (span: otel.Span) => Promise<void>;
 type TraceArguments<Spans> = {
   [Name in SpanName<Spans>]: [
@@ -51,6 +58,24 @@ type UntypedTracedCallback = (
   next: NextFunction,
 ) => Promise<void>;
 
+/** An OpenTelemetry span that ends automatically when disposed. */
+export type DisposableSpan = otel.Span & {
+  [Symbol.dispose](): void;
+};
+
+const disposableSpan = (span: otel.Span): DisposableSpan => {
+  let ended = false;
+  const end = span.end.bind(span);
+  const managed = span as DisposableSpan;
+  managed.end = (endTime) => {
+    if (ended) return;
+    ended = true;
+    end(endTime);
+  };
+  managed[Symbol.dispose] = () => managed.end();
+  return managed;
+};
+
 /**
  * Context property added by the plugin.
  *
@@ -82,6 +107,8 @@ export type OpenTelemetryContext<
      * The current active OpenTelemetry span context
      */
     spanContext: otel.SpanContext;
+    /** Start a child span with a manually controlled lifetime. */
+    start: (...args: SpanArguments<Spans>) => DisposableSpan;
     /**
      * Create a new span and execute a function within it
      * @param name Name of the span
@@ -298,8 +325,13 @@ export const openTelemetry = <
       spanContext: rootSpan.spanContext(),
       context: rootContext,
       tracer,
-      trace: async (name, attributes, fn) => {
-        const customSpan = tracer.startSpan(name, { attributes }, otContext);
+      start: (...args) => {
+        const [name, attributes] = args;
+        return disposableSpan(tracer.startSpan(name, { attributes }, otContext));
+      },
+      trace: async (...args) => {
+        const [name, attributes, fn] = args;
+        const customSpan = ctx.telemetry.start(name, attributes);
         const parentContext = otContext;
         otContext = otel.trace.setSpan(parentContext, customSpan);
         try {
