@@ -19,41 +19,18 @@ However, there are some problems with it:
 
 This plugin allows you to use OpenTelemetry without those caveats.
 
-## Usage
+## Setup
 
 ```ts
-import { Bot, Context } from "grammy";
-import { getHttpTracer, openTelemetryTransformer } from "@grammyjs/opentelemetry";
+import { Bot, type Context } from "grammy";
+import { openTelemetry, type OpenTelemetryContext } from "@grammyjs/opentelemetry";
 
-const bot = new Bot<Context>("token");
+const bot = new Bot<Context & OpenTelemetryContext>("token");
+bot.use(openTelemetry("my-bot"));
+```
 
-bot.api.config.use(openTelemetryTransformer(getHttpTracer("my-bot")));
+To use a custom tracer:
 
-bot.command("start", (ctx) => {
-  // Creates a new span tied to the span of the current update.
-  return ctx.openTelemetry.trace(
-    // span name
-    "command.start",
-    // span attributes
-    { ["user.id"]: ctx.from?.id },
-    // span actions
-    async (span) => {
-      span.addEvent("command.start.handle");
-      await ctx.reply("Hello! I'm a bot!");
-      await ctx.reply("I can help you with a lot of things!");
-    },
-  );
-});
-
-bot.command(
-  "ping",
-  // Wraps the handler in a span with the given name, tied to the span of the current update.
-  // Shortcut for `ctx.openTelemetry.trace("command.ping", ...)`.
-  traced("command.ping", async (ctx) => {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    await ctx.reply("Pong!");
-  }),
-);
-
-bot.start();
+```ts
+bot.use(openTelemetry("my-bot", { tracer: customTracer }));
 ```
