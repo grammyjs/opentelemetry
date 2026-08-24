@@ -32,6 +32,16 @@ type SpanArguments<Spans> = {
   ];
 }[SpanName<Spans>];
 
+export type EventDefinitions = Record<string, LogAttributes>;
+type ValidEventDefinitions<Events> = { [Name in keyof Events]: LogAttributes };
+type EventName<Events> = Extract<keyof Events, string>;
+type EventArguments<Events> = {
+  [Name in EventName<Events>]: [
+    name: Name,
+    attributes: Events[Name],
+  ];
+}[EventName<Events>];
+
 type TraceCallback = (span: otel.Span) => Promise<void>;
 type TraceArguments<Spans> = {
   [Name in SpanName<Spans>]: [
@@ -41,20 +51,29 @@ type TraceArguments<Spans> = {
   ];
 }[SpanName<Spans>];
 
-type TracedCallback<Spans extends ValidSpanDefinitions<Spans>> = (
-  ctx: Context & OpenTelemetryContext<Spans>,
+type TracedCallback<
+  Spans extends ValidSpanDefinitions<Spans>,
+  Events extends ValidEventDefinitions<Events>,
+> = (
+  ctx: Context & OpenTelemetryContext<Spans, Events>,
   span: otel.Span,
   next: NextFunction,
 ) => Promise<void>;
-type AttributeFreeTracedArguments<Spans extends ValidSpanDefinitions<Spans>> = {
-  [Name in SpanName<Spans>]: Record<never, never> extends Spans[Name] ? [name: Name, fn: TracedCallback<Spans>]
+type AttributeFreeTracedArguments<
+  Spans extends ValidSpanDefinitions<Spans>,
+  Events extends ValidEventDefinitions<Events>,
+> = {
+  [Name in SpanName<Spans>]: Record<never, never> extends Spans[Name] ? [name: Name, fn: TracedCallback<Spans, Events>]
     : never;
 }[SpanName<Spans>];
-type AttributedTracedArguments<Spans extends ValidSpanDefinitions<Spans>> = {
+type AttributedTracedArguments<
+  Spans extends ValidSpanDefinitions<Spans>,
+  Events extends ValidEventDefinitions<Events>,
+> = {
   [Name in SpanName<Spans>]: [
     name: Name,
     attributes: Spans[Name],
-    fn: TracedCallback<Spans>,
+    fn: TracedCallback<Spans, Events>,
   ];
 }[SpanName<Spans>];
 
@@ -96,9 +115,11 @@ const disposableSpan = (span: otel.Span): DisposableSpan => {
  * ```
  *
  * @typeParam Spans Supported custom spans and their attribute payloads
+ * @typeParam Events Supported events and their attribute payloads
  */
 export type OpenTelemetryContext<
   Spans extends ValidSpanDefinitions<Spans> = SpanDefinitions,
+  Events extends ValidEventDefinitions<Events> = EventDefinitions,
 > = {
   telemetry: {
     /**
@@ -114,7 +135,7 @@ export type OpenTelemetryContext<
      */
     spanContext: otel.SpanContext;
     /** Emit a named OpenTelemetry Log Event. */
-    event: (name: string, attributes: LogAttributes) => void;
+    event: (...args: EventArguments<Events>) => void;
     /** Start a child span with a manually controlled lifetime. */
     start: (...args: SpanArguments<Spans>) => DisposableSpan;
     /**
@@ -231,9 +252,10 @@ export const openTelemetryTransformer = (
  * );
  * ```
  */
-export function traced<Spans extends ValidSpanDefinitions<Spans> = SpanDefinitions>(
-  ...args: AttributeFreeTracedArguments<Spans>
-): MiddlewareFn<Context & OpenTelemetryContext<Spans>>;
+export function traced<
+  Spans extends ValidSpanDefinitions<Spans> = SpanDefinitions,
+  Events extends ValidEventDefinitions<Events> = EventDefinitions,
+>(...args: AttributeFreeTracedArguments<Spans, Events>): MiddlewareFn<Context & OpenTelemetryContext<Spans, Events>>;
 /**
  * Wraps middleware in a span with initial attributes.
  * @param args Span name, initial attributes, and middleware callback
@@ -248,9 +270,10 @@ export function traced<Spans extends ValidSpanDefinitions<Spans> = SpanDefinitio
  * );
  * ```
  */
-export function traced<Spans extends ValidSpanDefinitions<Spans> = SpanDefinitions>(
-  ...args: AttributedTracedArguments<Spans>
-): MiddlewareFn<Context & OpenTelemetryContext<Spans>>;
+export function traced<
+  Spans extends ValidSpanDefinitions<Spans> = SpanDefinitions,
+  Events extends ValidEventDefinitions<Events> = EventDefinitions,
+>(...args: AttributedTracedArguments<Spans, Events>): MiddlewareFn<Context & OpenTelemetryContext<Spans, Events>>;
 export function traced(
   name: string,
   attributesOrFn: Attributes | UntypedTracedCallback,
@@ -285,6 +308,7 @@ export type PluginOptions = {
  * @param options Tracer and diagnostic configuration
  * @returns A middleware that enables OpenTelemetry for every update
  * @typeParam Spans Supported custom spans and their attribute payloads
+ * @typeParam Events Supported events and their attribute payloads
  *
  * @example ```ts
  * import { Bot, Context } from "grammy";
@@ -297,10 +321,11 @@ export type PluginOptions = {
  */
 export const openTelemetry = <
   Spans extends ValidSpanDefinitions<Spans> = SpanDefinitions,
+  Events extends ValidEventDefinitions<Events> = EventDefinitions,
 >(
   serviceName: string,
   options: PluginOptions = {},
-): MiddlewareFn<Context & OpenTelemetryContext<Spans>> => {
+): MiddlewareFn<Context & OpenTelemetryContext<Spans, Events>> => {
   if (options.logLevel) {
     otel.diag.setLogger(new otel.DiagConsoleLogger(), options.logLevel);
   }
@@ -342,7 +367,8 @@ export const openTelemetry = <
       spanContext: rootSpan.spanContext(),
       context: rootContext,
       tracer,
-      event: (eventName, attributes) => {
+      event: (...args) => {
+        const [eventName, attributes] = args;
         logger.emit({ eventName, attributes, context: otContext });
       },
       start: (...args) => {
