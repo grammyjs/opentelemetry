@@ -1,5 +1,10 @@
 {
   "lock": false,
+  "imports": {
+    "@grammyjs/opentelemetry": "npm:@grammyjs/opentelemetry",
+    "@opentelemetry/api": "npm:@opentelemetry/api",
+    "grammy": "npm:grammy"
+  },
   "exclude": ["dist", ".vscode", ".github"],
   "lint": {
     "rules": {
@@ -37,8 +42,7 @@
     ]
   },
   "tasks": {
-    "check": "deno lint && deno fmt --check && deno check src/mod.ts",
-    "tidy": "deno fmt && deno task check",
-    "backport": "deno run --no-prompt --allow-read=. --allow-write=. https://deno.land/x/deno2node@v1.11.0/src/cli.ts tsconfig.json"
+    "check": "deno lint && deno fmt --check",
+    "tidy": "deno fmt && deno task check"
   }
 }

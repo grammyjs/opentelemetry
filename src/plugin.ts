@@ -1,20 +1,13 @@
-import {
-  Attributes,
-  BasicTracerProvider,
-  BatchSpanProcessor,
-  Context,
-  conventions,
-  MiddlewareFn,
-  NextFunction,
-  otel,
-  OTLPExporterNodeConfigBase,
-  OTLPTraceExporter,
-  RawApi,
-  Resource,
-  TracerConfig,
-  Transformer,
-  Update,
-} from "./deps.deno.ts";
+import * as otel from "@opentelemetry/api";
+import type { Attributes } from "@opentelemetry/api";
+import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
+import type { OTLPExporterNodeConfigBase } from "@opentelemetry/otlp-exporter-base";
+import { Resource } from "@opentelemetry/resources";
+import { BasicTracerProvider, BatchSpanProcessor } from "@opentelemetry/sdk-trace-base";
+import type { TracerConfig } from "@opentelemetry/sdk-trace-base";
+import * as conventions from "@opentelemetry/semantic-conventions";
+import type { Context, MiddlewareFn, NextFunction, RawApi, Transformer } from "grammy";
+import type { Update } from "grammy/types";
 
 /**
  * Context property added by the plugin.

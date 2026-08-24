@@ -19,6 +19,20 @@ However, there are some problems with it:
 
 This plugin allows you to use OpenTelemetry without those caveats.
 
+## Installation
+
+Node.js:
+
+```sh
+npm install grammy @grammyjs/opentelemetry
+```
+
+Deno:
+
+```sh
+deno add npm:grammy npm:@grammyjs/opentelemetry
+```
+
 ## Usage
 
 ```ts
