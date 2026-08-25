@@ -13,14 +13,18 @@
     "url": "git+https://github.com/grammyjs/open-telemetry.git"
   },
   "dependencies": {
-    "@opentelemetry/api": "1.8.0",
-    "@opentelemetry/exporter-trace-otlp-http": "0.49.1",
-    "@opentelemetry/resources": "1.22.0",
-    "@opentelemetry/sdk-trace-base": "1.22.0",
-    "@opentelemetry/semantic-conventions": "1.22.0"
+    "@opentelemetry/api": "1.9.1",
+    "@opentelemetry/api-logs": "0.221.0",
+    "@opentelemetry/exporter-logs-otlp-http": "0.221.0",
+    "@opentelemetry/exporter-trace-otlp-http": "0.57.2",
+    "@opentelemetry/resources": "1.30.1",
+    "@opentelemetry/resources-logs": "npm:@opentelemetry/resources@2.10.0",
+    "@opentelemetry/sdk-logs": "0.221.0",
+    "@opentelemetry/sdk-trace-base": "1.30.1",
+    "@opentelemetry/semantic-conventions": "1.30.0"
   },
   "devDependencies": {
-    "@opentelemetry/otlp-exporter-base": "0.49.1",
+    "@opentelemetry/otlp-exporter-base": "0.57.2",
     "deno2node": "^1.11.0",
     "grammy": "1"
   },
