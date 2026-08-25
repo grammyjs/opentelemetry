@@ -10,6 +10,13 @@ export type { OTLPExporterNodeConfigBase } from "npm:@opentelemetry/otlp-exporte
 export { Resource } from "npm:@opentelemetry/resources@1.30.1";
 export { resourceFromAttributes as logResourceFromAttributes } from "npm:@opentelemetry/resources@2.10.0";
 export { BatchLogRecordProcessor, LoggerProvider } from "npm:@opentelemetry/sdk-logs@0.221.0";
-export { BasicTracerProvider, BatchSpanProcessor } from "npm:@opentelemetry/sdk-trace-base@1.30.1";
+export {
+  AlwaysOffSampler,
+  AlwaysOnSampler,
+  BasicTracerProvider,
+  BatchSpanProcessor,
+  ParentBasedSampler,
+  TraceIdRatioBasedSampler,
+} from "npm:@opentelemetry/sdk-trace-base@1.30.1";
 export type { TracerConfig } from "npm:@opentelemetry/sdk-trace-base@1.30.1";
 export * as conventions from "npm:@opentelemetry/semantic-conventions@1.30.0";

@@ -8,7 +8,14 @@ export type { OTLPExporterNodeConfigBase } from "@opentelemetry/otlp-exporter-ba
 export { Resource } from "@opentelemetry/resources";
 export { resourceFromAttributes as logResourceFromAttributes } from "@opentelemetry/resources-logs";
 export { BatchLogRecordProcessor, LoggerProvider } from "@opentelemetry/sdk-logs";
-export { BasicTracerProvider, BatchSpanProcessor } from "@opentelemetry/sdk-trace-base";
+export {
+  AlwaysOffSampler,
+  AlwaysOnSampler,
+  BasicTracerProvider,
+  BatchSpanProcessor,
+  ParentBasedSampler,
+  TraceIdRatioBasedSampler,
+} from "@opentelemetry/sdk-trace-base";
 export type { TracerConfig } from "@opentelemetry/sdk-trace-base";
 export * as conventions from "@opentelemetry/semantic-conventions";
 export type { Context, MiddlewareFn, NextFunction, RawApi, Transformer } from "grammy";
