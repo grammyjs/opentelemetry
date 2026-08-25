@@ -33,41 +33,157 @@ Deno:
 deno add npm:grammy npm:@grammyjs/opentelemetry
 ```
 
-## Usage
+## Setup
 
 ```ts
-import { Bot, Context } from "grammy";
-import { getHttpTracer, openTelemetryTransformer } from "@grammyjs/opentelemetry";
+import { Bot, type Context } from "grammy";
+import { openTelemetry, type OpenTelemetryContext, traced } from "@grammyjs/opentelemetry";
 
-const bot = new Bot<Context>("token");
+const bot = new Bot<Context & OpenTelemetryContext>("token");
+bot.use(openTelemetry("my-bot"));
+```
 
-bot.api.config.use(openTelemetryTransformer(getHttpTracer("my-bot")));
+To use a custom tracer:
 
+```ts
+bot.use(openTelemetry("my-bot", { tracer: customTracer }));
+```
+
+## Events
+
+`event()` emits an OpenTelemetry Log Event:
+
+```ts
 bot.command("start", (ctx) => {
-  // Creates a new span tied to the span of the current update.
-  return ctx.openTelemetry.trace(
-    // span name
+  ctx.telemetry.event("command.start", { "user.id": ctx.from?.id });
+});
+```
+
+## Traces
+
+Run work inside a child span of the current update:
+
+```ts
+bot.command("start", async (ctx) => {
+  await ctx.telemetry.trace(
     "command.start",
-    // span attributes
-    { ["user.id"]: ctx.from?.id },
-    // span actions
+    { command: "start" },
     async (span) => {
       span.addEvent("command.start.handle");
       await ctx.reply("Hello! I'm a bot!");
-      await ctx.reply("I can help you with a lot of things!");
+    },
+  );
+});
+```
+
+`traced()` provides the same lifecycle as grammY middleware:
+
+```ts
+bot.command(
+  "start",
+  traced(
+    "command.start",
+    { command: "start" },
+    async (ctx, span) => {
+      span.addEvent("command.start.handle");
+      await ctx.reply("Hello! I'm a bot!");
+    },
+  ),
+);
+```
+
+## Manual spans
+
+Custom spans can be added manually:
+
+```ts
+bot.command("finish", async (ctx) => {
+  const span = ctx.telemetry.start("command.finish", { success: true });
+  try {
+    span.setAttribute("telegram.chat.id", ctx.chat.id);
+    await ctx.reply("Finished!");
+  } finally {
+    span.end();
+  }
+});
+```
+
+> [!NOTE] `start()` returns a `DisposableSpan`. It supports `using`, which ends the span automatically when execution
+> leaves its scope:
+>
+> ```ts
+> using span = ctx.telemetry.start("command.finish", { success: true });
+> ```
+
+## Typed telemetry
+
+You can type event and span attributes by defining maps from their names to their attributes. If you omit a map, that
+signal accepts any name and attributes.
+
+```ts
+import { Bot, type Context } from "grammy";
+import { openTelemetry, type OpenTelemetryContext, traced } from "@grammyjs/opentelemetry";
+
+type BotEvents = {
+  "command.start": {
+    "user.id"?: number;
+  };
+};
+
+type BotSpans = {
+  "command.start.reply": {
+    "user.id"?: number;
+  };
+  "command.finish": {
+    success: boolean;
+  };
+};
+
+type BotContext = Context & OpenTelemetryContext<BotSpans, BotEvents>;
+
+const bot = new Bot<BotContext>("token");
+bot.use(openTelemetry<BotSpans, BotEvents>("my-bot"));
+
+bot.command("start", async (ctx) => {
+  ctx.telemetry.event("command.start", { "user.id": ctx.from?.id });
+
+  await ctx.telemetry.trace(
+    "command.start.reply",
+    { "user.id": ctx.from?.id },
+    async (span) => {
+      const message = await ctx.reply("Hello!");
+      span.setAttribute("telegram.message.id", message.message_id);
+    },
+  );
+
+  // Type error: "command.unknown" is not defined in BotEvents.
+  ctx.telemetry.event("command.unknown", {});
+
+  // Type error: "command.start" events require a numeric "user.id".
+  ctx.telemetry.event("command.start", { "user.id": "123" });
+
+  // Type error: "command.unknown" is not defined in BotSpans.
+  ctx.telemetry.start("command.unknown", {});
+
+  // Type error: "command.finish" spans require "success".
+  ctx.telemetry.start("command.finish", {});
+
+  // Type error: "user.id" must be a number.
+  await ctx.telemetry.trace(
+    "command.start.reply",
+    { "user.id": "123" },
+    async (span) => {
+      span.addEvent("reply.started");
+      await ctx.reply("Hello!");
     },
   );
 });
 
+// Type error: "command.finish" requires attributes before the callback.
 bot.command(
-  "ping",
-  // Wraps the handler in a span with the given name, tied to the span of the current update.
-  // Shortcut for `ctx.openTelemetry.trace("command.ping", ...)`.
-  traced("command.ping", async (ctx) => {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    await ctx.reply("Pong!");
+  "finish",
+  traced("command.finish", async (ctx) => {
+    await ctx.reply("Finished!");
   }),
 );
-
-bot.start();
 ```

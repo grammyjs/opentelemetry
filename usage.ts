@@ -1,18 +1,16 @@
 // deno-lint-ignore-file no-console
 import { Bot, type Context } from "grammy";
 import { DiagLogLevel } from "@opentelemetry/api";
-import { getHttpTracer, openTelemetry, type OpenTelemetryContext, traced } from "@grammyjs/opentelemetry";
+import { openTelemetry, type OpenTelemetryContext, traced } from "./src/mod.ts";
 
 type AppContext = Context & OpenTelemetryContext;
 
 const bot = new Bot<AppContext>("298746736:AAFCUMzjfYa0TWFtRdD7GwkPWtsrNX59pZA");
 
-const tracer = getHttpTracer("telegram-bot");
-bot.use(openTelemetry(tracer, { logLevel: DiagLogLevel.ERROR }));
-//bot.api.config.use(openTelemetryTransformer(tracer, { skip: (m) => m === "getUpdates" }));
+bot.use(openTelemetry("telegram-bot", { logLevel: DiagLogLevel.ERROR }));
 
 bot.command("start", (ctx) => {
-  return ctx.openTelemetry.trace(
+  return ctx.telemetry.trace(
     "command.start",
     { ["user.id"]: ctx.from?.id },
     async (span) => {
