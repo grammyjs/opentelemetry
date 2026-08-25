@@ -36,6 +36,17 @@
     ".": {
       "types": "./out/mod.d.ts",
       "default": "./out/mod.js"
+    },
+    "./types": {
+      "types": "./out/types.d.ts",
+      "default": "./out/types.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "types": [
+        "out/types"
+      ]
     }
   },
   "files": [
