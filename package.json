@@ -1,12 +1,19 @@
 {
   "name": "@grammyjs/opentelemetry",
-  "version": "0.0.8",
+  "version": "0.1.0",
   "description": "grammY plugin that adds OpenTelemetry tracing to your bot",
   "author": "Roz <roz@rjmunhoz.me>",
   "license": "MIT",
+  "engines": {
+    "node": "^18.19.0 || >=20.6.0"
+  },
+  "type": "commonjs",
+  "main": "./out/mod.js",
+  "types": "./out/mod.d.ts",
   "scripts": {
-    "prepare": "npm run backport",
-    "backport": "deno2node tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "prepare": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -25,30 +32,21 @@
   },
   "devDependencies": {
     "@opentelemetry/otlp-exporter-base": "0.57.2",
-    "deno2node": "^1.11.0",
-    "grammy": "1"
+    "grammy": "1",
+    "typescript": "^5.8.3"
   },
   "exports": {
     ".": {
       "types": "./out/mod.d.ts",
-      "node": "./out/mod.js",
-      "browser": "./out/web.mjs",
-      "default": "./out/web.mjs"
+      "default": "./out/mod.js"
     },
     "./types": {
       "types": "./out/types.d.ts",
       "default": "./out/types.js"
-    },
-    "./web": {
-      "types": "./out/web.d.ts",
-      "default": "./out/web.mjs"
     }
   },
   "typesVersions": {
     "*": {
-      "web": [
-        "out/web"
-      ],
       "types": [
         "out/types"
       ]
