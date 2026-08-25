@@ -1,10 +1,12 @@
 {
   "name": "@grammyjs/opentelemetry",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "grammY plugin that adds OpenTelemetry tracing to your bot",
   "author": "Roz <roz@rjmunhoz.me>",
   "license": "MIT",
   "type": "commonjs",
+  "main": "./out/mod.js",
+  "types": "./out/mod.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check": "tsc -p tsconfig.json --noEmit",
@@ -34,17 +36,6 @@
     ".": {
       "types": "./out/mod.d.ts",
       "default": "./out/mod.js"
-    },
-    "./types": {
-      "types": "./out/types.d.ts",
-      "default": "./out/types.js"
-    }
-  },
-  "typesVersions": {
-    "*": {
-      "types": [
-        "out/types"
-      ]
     }
   },
   "files": [
