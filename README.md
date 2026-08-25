@@ -108,8 +108,10 @@ bot.command("finish", async (ctx) => {
 });
 ```
 
-> [!NOTE] `start()` returns a `DisposableSpan`. It supports `using`, which ends the span automatically when execution
-> leaves its scope:
+> [!NOTE]
+>
+> `start()` returns a `DisposableSpan`. It supports `using`, which ends the span automatically when execution leaves its
+> scope:
 >
 > ```ts
 > using span = ctx.telemetry.start("command.finish", { success: true });
