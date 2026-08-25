@@ -1,8 +1,13 @@
 export * as otel from "@opentelemetry/api";
 export type { Attributes } from "@opentelemetry/api";
+export { logs } from "@opentelemetry/api-logs";
+export type { LogAttributes } from "@opentelemetry/api-logs";
+export { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http";
 export { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 export type { OTLPExporterNodeConfigBase } from "@opentelemetry/otlp-exporter-base";
 export { Resource } from "@opentelemetry/resources";
+export { resourceFromAttributes as logResourceFromAttributes } from "@opentelemetry/resources-logs";
+export { BatchLogRecordProcessor, LoggerProvider } from "@opentelemetry/sdk-logs";
 export {
   AlwaysOffSampler,
   AlwaysOnSampler,
