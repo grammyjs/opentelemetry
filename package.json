@@ -4,6 +4,9 @@
   "description": "grammY plugin that adds OpenTelemetry tracing to your bot",
   "author": "Roz <roz@rjmunhoz.me>",
   "license": "MIT",
+  "engines": {
+    "node": "^18.19.0 || >=20.6.0"
+  },
   "type": "commonjs",
   "main": "./out/mod.js",
   "types": "./out/mod.d.ts",
