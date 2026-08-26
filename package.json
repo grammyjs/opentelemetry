@@ -4,13 +4,19 @@
   "description": "grammY plugin that adds OpenTelemetry tracing to your bot",
   "author": "Roz <roz@rjmunhoz.me>",
   "license": "MIT",
+  "engines": {
+    "node": "^18.19.0 || >=20.6.0"
+  },
+  "type": "commonjs",
+  "main": "./out/mod.js",
+  "types": "./out/mod.d.ts",
   "scripts": {
     "prepare": "npm run backport",
     "backport": "deno2node tsconfig.json"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/grammyjs/open-telemetry.git"
+    "url": "git+https://github.com/grammyjs/opentelemetry.git"
   },
   "dependencies": {
     "@opentelemetry/api": "1.9.1",
@@ -31,24 +37,15 @@
   "exports": {
     ".": {
       "types": "./out/mod.d.ts",
-      "node": "./out/mod.js",
-      "browser": "./out/web.mjs",
-      "default": "./out/web.mjs"
+      "default": "./out/mod.js"
     },
     "./types": {
       "types": "./out/types.d.ts",
       "default": "./out/types.js"
-    },
-    "./web": {
-      "types": "./out/web.d.ts",
-      "default": "./out/web.mjs"
     }
   },
   "typesVersions": {
     "*": {
-      "web": [
-        "out/web"
-      ],
       "types": [
         "out/types"
       ]
