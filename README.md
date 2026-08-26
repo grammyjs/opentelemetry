@@ -19,6 +19,20 @@ However, there are some problems with it:
 
 This plugin allows you to use OpenTelemetry without those caveats.
 
+## Installation
+
+Node.js:
+
+```sh
+npm install grammy @grammyjs/opentelemetry
+```
+
+Deno:
+
+```sh
+deno add npm:grammy npm:@grammyjs/opentelemetry
+```
+
 ## Setup
 
 ```ts
@@ -94,8 +108,10 @@ bot.command("finish", async (ctx) => {
 });
 ```
 
-> [!NOTE] `start()` returns a `DisposableSpan`. It supports `using`, which ends the span automatically when execution
-> leaves its scope:
+> [!NOTE]
+>
+> `start()` returns a `DisposableSpan`. It supports `using`, which ends the span automatically when execution leaves its
+> scope:
 >
 > ```ts
 > using span = ctx.telemetry.start("command.finish", { success: true });

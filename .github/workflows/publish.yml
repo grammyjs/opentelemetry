@@ -25,11 +25,6 @@ jobs:
                   registry-url: https://registry.npmjs.org
                   package-manager-cache: false
 
-            - name: Setup Deno
-              uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
-              with:
-                  deno-version: v2.x
-
             - name: Install dependencies
               run: npm ci --ignore-scripts
 
@@ -42,10 +37,15 @@ jobs:
                   fi
 
             - name: Build package
-              run: npm run backport
+              run: npm run build
 
             - name: Smoke-test package in Node.js
               run: node -e 'const plugin = require("./out/mod.js"); if (typeof plugin.openTelemetry !== "function") process.exit(1)'
+
+            - name: Setup Deno
+              uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+              with:
+                  deno-version: v2.x
 
             - name: Smoke-test package in Deno
               run: deno eval 'import { openTelemetry } from "./out/mod.js"; if (typeof openTelemetry !== "function") Deno.exit(1)'

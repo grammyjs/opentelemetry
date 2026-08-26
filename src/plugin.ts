@@ -1,28 +1,27 @@
+import * as otel from "@opentelemetry/api";
+import type { Attributes } from "@opentelemetry/api";
+import { logs } from "@opentelemetry/api-logs";
+import type { LogAttributes } from "@opentelemetry/api-logs";
+import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http";
+import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
+import type { OTLPExporterNodeConfigBase } from "@opentelemetry/otlp-exporter-base";
+import { Resource } from "@opentelemetry/resources";
+import { resourceFromAttributes as logResourceFromAttributes } from "@opentelemetry/resources-logs";
+import { BatchLogRecordProcessor, LoggerProvider } from "@opentelemetry/sdk-logs";
 import {
-  type Attributes,
+  AlwaysOffSampler,
+  AlwaysOnSampler,
   BasicTracerProvider,
-  BatchLogRecordProcessor,
   BatchSpanProcessor,
-  type Context,
-  conventions,
-  type LogAttributes,
-  LoggerProvider,
-  logResourceFromAttributes,
-  logs,
-  type MiddlewareFn,
-  type NextFunction,
-  otel,
-  type OTLPExporterNodeConfigBase,
-  OTLPLogExporter,
-  OTLPTraceExporter,
-  type RawApi,
-  Resource,
-  type TracerConfig,
-  type Transformer,
-  type Update,
-} from "./deps.deno.ts";
+  ParentBasedSampler,
+  TraceIdRatioBasedSampler,
+} from "@opentelemetry/sdk-trace-base";
+import type { TracerConfig } from "@opentelemetry/sdk-trace-base";
+import * as conventions from "@opentelemetry/semantic-conventions";
+import type { Context, MiddlewareFn, NextFunction, RawApi, Transformer } from "grammy";
+import type { Update } from "grammy/types";
 
-export { AlwaysOffSampler, AlwaysOnSampler, ParentBasedSampler, TraceIdRatioBasedSampler } from "./deps.deno.ts";
+export { AlwaysOffSampler, AlwaysOnSampler, ParentBasedSampler, TraceIdRatioBasedSampler };
 export type SpanDefinitions = Record<string, Attributes>;
 type ValidSpanDefinitions<Spans> = { [Name in keyof Spans]: Attributes };
 type SpanName<Spans> = Extract<keyof Spans, string>;
