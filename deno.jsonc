@@ -43,6 +43,7 @@
   },
   "tasks": {
     "check": "deno lint && deno fmt --check",
+    "test": "deno test --allow-env",
     "tidy": "deno fmt && deno task check"
   }
 }
