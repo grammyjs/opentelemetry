@@ -13,6 +13,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test",
     "prepare": "npm run build"
   },
   "repository": {
