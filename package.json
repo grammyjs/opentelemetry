@@ -1,6 +1,6 @@
 {
   "name": "@grammyjs/opentelemetry",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "grammY plugin that adds OpenTelemetry tracing to your bot",
   "author": "Roz <roz@rjmunhoz.me>",
   "license": "MIT",
