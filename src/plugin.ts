@@ -2,6 +2,7 @@ import * as otel from "@opentelemetry/api";
 import type { Attributes } from "@opentelemetry/api";
 import { logs } from "@opentelemetry/api-logs";
 import type { LogAttributes } from "@opentelemetry/api-logs";
+import { AsyncLocalStorageContextManager } from "@opentelemetry/context-async-hooks";
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import type { OTLPExporterNodeConfigBase } from "@opentelemetry/otlp-exporter-base";
@@ -18,6 +19,7 @@ import {
 } from "@opentelemetry/sdk-trace-base";
 import type { TracerConfig } from "@opentelemetry/sdk-trace-base";
 import * as conventions from "@opentelemetry/semantic-conventions";
+import { InputFile } from "grammy";
 import type { Context, MiddlewareFn, NextFunction, RawApi, Transformer } from "grammy";
 import type { Update } from "grammy/types";
 
@@ -165,6 +167,46 @@ export type OpenTelemetryContext<
 
 const updateType = (update: Update): string => Object.keys(update).filter((k) => k !== "update_id")[0];
 const INSTRUMENTATION_SCOPE_NAME = "grammyjs-opentelemetry";
+const OMIT_INPUT_FILE = Symbol("omit-input-file");
+
+const shouldInstrumentApiCall = (
+  method: Parameters<Transformer<RawApi>>["1"],
+  payload: Parameters<Transformer<RawApi>>["2"],
+  options: ApiInstrumentationOptions,
+): boolean => {
+  return (method !== "getUpdates" || options.enableGetUpdates === true) &&
+    options.exclude?.(method, payload) !== true &&
+    (options.include === undefined || options.include(method, payload));
+};
+
+const omitInputFiles = (value: unknown): unknown | typeof OMIT_INPUT_FILE => {
+  if (value instanceof InputFile) return OMIT_INPUT_FILE;
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => {
+      const projected = omitInputFiles(item);
+      return projected === OMIT_INPUT_FILE ? [] : [projected];
+    });
+  }
+  if (typeof value === "object" && value !== null) {
+    return Object.fromEntries(
+      Object.entries(value).flatMap(([key, item]) => {
+        const projected = omitInputFiles(item);
+        return projected === OMIT_INPUT_FILE ? [] : [[key, projected]];
+      }),
+    );
+  }
+  return value;
+};
+
+const serializeGrammyPayload = (payload: object): string =>
+  JSON.stringify(
+    Object.fromEntries(
+      Object.entries(payload).flatMap(([key, value]) => {
+        const projected = omitInputFiles(value);
+        return projected === OMIT_INPUT_FILE ? [] : [[key, projected]];
+      }),
+    ),
+  );
 
 /**
  * Create a new instance of the HTTP OpenTelemetry Tracer with recommended defaults.
@@ -187,45 +229,55 @@ export const getHttpTracer = (
     ...options.providerConfig,
   });
   provider.addSpanProcessor(new BatchSpanProcessor(exporter));
-  provider.register();
+  provider.register({
+    contextManager: new AsyncLocalStorageContextManager().enable(),
+  });
   return provider.getTracer(INSTRUMENTATION_SCOPE_NAME);
 };
 
-/**
- * Options for the transformer middleware
- */
-export type TransformerOptions = {
+type ApiFilter = (
+  method: Parameters<Transformer<RawApi>>["1"],
+  payload: Parameters<Transformer<RawApi>>["2"],
+) => boolean;
+
+type ApiInstrumentationOptions = {
   /**
-   * A function that returns true if the given method and payload should be skipped
+   * Whether to instrument `getUpdates` calls. Disabled by default because
+   * long polling would otherwise create a span for every polling request.
+   *
+   * @default false
+   */
+  enableGetUpdates?: boolean;
+  /**
+   * Instrument only API calls for which this function returns true.
+   *
    * @param method The invoked API method
    * @param payload Payload of the API call
-   * @returns Boolean indicating whether the API call should be skipped
+   * @returns Boolean indicating whether the API call should be included
    */
-  skip: (method: Parameters<Transformer<RawApi>>["1"], payload: Parameters<Transformer<RawApi>>["2"]) => boolean;
+  include?: ApiFilter;
+  /**
+   * Do not instrument API calls for which this function returns true.
+   * Takes precedence over `include`.
+   *
+   * @param method The invoked API method
+   * @param payload Payload of the API call
+   * @returns Boolean indicating whether the API call should be excluded
+   */
+  exclude?: ApiFilter;
 };
 
-/**
- * Enables telemetry for every API call made outside of a middleware or
- * by using `bot.api` directly.
- *
- * @param tracer An instance of OpenTelemetry Tracer
- * @param options Optional config object
- *
- * @example ```ts
- * bot.api.config.use(openTelemetryTransformer(getHttpTracer("my-bot")));
- * ```
- */
-export const openTelemetryTransformer = (
+const createTelemetryTransformer = (
   tracer: otel.Tracer,
-  options: TransformerOptions = { skip: () => false },
+  options: ApiInstrumentationOptions,
 ): Transformer<RawApi> => {
   return (prev, method, payload, signal) => {
-    if (options.skip(method, payload)) return prev(method, payload, signal);
+    if (!shouldInstrumentApiCall(method, payload, options)) return prev(method, payload, signal);
 
     return tracer.startActiveSpan(`api.${method}`, async (span) => {
       try {
         if (span.isRecording()) {
-          span.addEvent("api.request", { body: JSON.stringify(payload) });
+          span.addEvent("api.request", { body: serializeGrammyPayload(payload) });
           span.setAttribute("api.method", method);
         }
         const response = await prev(method, payload, signal);
@@ -291,7 +343,7 @@ export function traced(
 }
 
 /** Configuration for `openTelemetry`. */
-export type PluginOptions = {
+export type PluginOptions = ApiInstrumentationOptions & {
   /** Use an existing tracer instead of creating one for the service. */
   tracer?: otel.Tracer;
   /**
@@ -300,22 +352,34 @@ export type PluginOptions = {
   logLevel?: otel.DiagLogLevel;
 };
 
+/** Components created by `openTelemetry`. */
+export type OpenTelemetry<
+  Spans extends ValidSpanDefinitions<Spans> = SpanDefinitions,
+  Events extends ValidEventDefinitions<Events> = EventDefinitions,
+> = {
+  /** Middleware that traces updates and exposes `ctx.telemetry`. */
+  telemetryMiddleware: MiddlewareFn<Context & OpenTelemetryContext<Spans, Events>>;
+  /** Transformer that traces outgoing Telegram API calls. */
+  telemetryTransformer: Transformer<RawApi>;
+};
+
 /**
- * Main plugin function. Enables OpenTelemetry for every update and every
- * API call performed via Context helpers (eg: ctx.reply).
+ * Creates OpenTelemetry middleware and an API transformer that share one tracer.
  *
  * @param serviceName Value of `service.name` on telemetry resources created by the plugin
  * @param options Tracer and diagnostic configuration
- * @returns A middleware that enables OpenTelemetry for every update
+ * @returns Middleware and transformer components to install on the bot
  * @typeParam Spans Supported custom spans and their attribute payloads
  * @typeParam Events Supported events and their attribute payloads
  *
  * @example ```ts
  * import { Bot, Context } from "grammy";
- * import { openTelemetry } from "grammy-opentelemetry";
+ * import { openTelemetry, OpenTelemetryContext } from "grammy-opentelemetry";
  *
- * const bot = new Bot<Context>("token");
- * bot.use(openTelemetry("my-bot"));
+ * const bot = new Bot<Context & OpenTelemetryContext>("token");
+ * const { telemetryMiddleware, telemetryTransformer } = openTelemetry("my-bot");
+ * bot.use(telemetryMiddleware);
+ * bot.api.config.use(telemetryTransformer);
  * bot.start();
  * ```
  */
@@ -325,7 +389,7 @@ export const openTelemetry = <
 >(
   serviceName: string,
   options: PluginOptions = {},
-): MiddlewareFn<Context & OpenTelemetryContext<Spans, Events>> => {
+): OpenTelemetry<Spans, Events> => {
   if (options.logLevel) {
     otel.diag.setLogger(new otel.DiagConsoleLogger(), options.logLevel);
   }
@@ -340,30 +404,13 @@ export const openTelemetry = <
   );
   const logger = loggerProvider.getLogger(INSTRUMENTATION_SCOPE_NAME);
 
-  return async (ctx, next) => {
+  const telemetryMiddleware: MiddlewareFn<Context & OpenTelemetryContext<Spans, Events>> = async (ctx, next) => {
     const typeKey = updateType(ctx.update);
     const rootSpan = tracer.startSpan(`update.${typeKey}`, {
       root: true,
     });
     const rootContext = otel.trace.setSpan(otel.context.active(), rootSpan);
     let otContext = rootContext;
-
-    ctx.api.config.use(async (prev, method, payload, signal) => {
-      const apiSpan = tracer.startSpan(`api.${method}`, {}, otContext);
-      try {
-        if (apiSpan.isRecording()) {
-          apiSpan.addEvent("api.request", { body: JSON.stringify(payload) });
-          apiSpan.setAttribute("api.method", method);
-        }
-        const response = await prev(method, payload, signal);
-        if (apiSpan.isRecording()) {
-          apiSpan.addEvent("api.response", { body: JSON.stringify(response) });
-        }
-        return response;
-      } finally {
-        apiSpan.end();
-      }
-    });
 
     if (rootSpan.isRecording()) {
       rootSpan.setAttribute("update.type", typeKey);
@@ -401,5 +448,9 @@ export const openTelemetry = <
     } finally {
       rootSpan.end();
     }
+  };
+  return {
+    telemetryMiddleware,
+    telemetryTransformer: createTelemetryTransformer(tracer, options),
   };
 };

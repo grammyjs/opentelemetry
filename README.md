@@ -40,13 +40,28 @@ import { Bot, type Context } from "grammy";
 import { openTelemetry, type OpenTelemetryContext, traced } from "@grammyjs/opentelemetry";
 
 const bot = new Bot<Context & OpenTelemetryContext>("token");
-bot.use(openTelemetry("my-bot"));
+const { telemetryMiddleware, telemetryTransformer } = openTelemetry("my-bot");
+bot.use(telemetryMiddleware);
+bot.api.config.use(telemetryTransformer);
 ```
 
 To use a custom tracer:
 
 ```ts
-bot.use(openTelemetry("my-bot", { tracer: customTracer }));
+const { telemetryMiddleware, telemetryTransformer } = openTelemetry("my-bot", { tracer: customTracer });
+```
+
+## API calls
+
+The API transformer traces calls through `bot.api`, `ctx.api`, and Context helpers such as `ctx.reply()`.
+
+```ts
+const { telemetryTransformer } = openTelemetry("my-bot", {
+  enableGetUpdates: true, // getUpdates is disabled by default
+  exclude: (method) => method === "sendChatAction", // Exclude matching methods, track the rest
+  include: (method) => method === "sendMessage", // or Include only matching methods
+});
+bot.api.config.use(telemetryTransformer);
 ```
 
 ## Events
@@ -144,7 +159,9 @@ type BotSpans = {
 type BotContext = Context & OpenTelemetryContext<BotSpans, BotEvents>;
 
 const bot = new Bot<BotContext>("token");
-bot.use(openTelemetry<BotSpans, BotEvents>("my-bot"));
+const { telemetryMiddleware, telemetryTransformer } = openTelemetry<BotSpans, BotEvents>("my-bot");
+bot.use(telemetryMiddleware);
+bot.api.config.use(telemetryTransformer);
 
 bot.command("start", async (ctx) => {
   ctx.telemetry.event("command.start", { "user.id": ctx.from?.id });

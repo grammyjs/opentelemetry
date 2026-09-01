@@ -13,6 +13,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check": "tsc -p tsconfig.json --noEmit",
+    "test": "deno task test",
     "prepare": "npm run build"
   },
   "repository": {
@@ -22,6 +23,7 @@
   "dependencies": {
     "@opentelemetry/api": "1.9.1",
     "@opentelemetry/api-logs": "0.221.0",
+    "@opentelemetry/context-async-hooks": "1.30.1",
     "@opentelemetry/exporter-logs-otlp-http": "0.221.0",
     "@opentelemetry/exporter-trace-otlp-http": "0.57.2",
     "@opentelemetry/resources": "1.30.1",
@@ -34,6 +36,9 @@
     "@opentelemetry/otlp-exporter-base": "0.57.2",
     "grammy": "1",
     "typescript": "^5.8.3"
+  },
+  "peerDependencies": {
+    "grammy": "1"
   },
   "exports": {
     ".": {
